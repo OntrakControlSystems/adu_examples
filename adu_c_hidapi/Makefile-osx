@@ -1,0 +1,9 @@
+CFLAGS := -O2 -std=c99 -Wall
+
+adu_example: main.o
+	$(CC) -o main main.o -I/usr/local/Cellar/hidapi/0.9.0/include -L/usr/local/Cellar/hidapi/0.9.0/lib -lhidapi
+
+default: adu_example
+
+clean:
+	rm adu70_example adu70_example.o

@@ -1,0 +1,9 @@
+CFLAGS := -O2 -std=c99 -Wall
+
+adu_example: main.o
+	$(CC) -o main main.o -lhidapi-libusb
+
+default: adu_example
+
+clean:
+	rm adu70_example adu70_example.o
