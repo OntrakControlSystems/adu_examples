@@ -9,10 +9,10 @@ device_list = aduhid.device_list(100)
 for device in device_list:
 	print('Vendor ID: %i, Product ID: %i, Serial Number: %s' % (device.vendor_id, device.product_id, device.serial_number))
 
-# Show the device list in a windows GUI popup. Return information on the selected device
+# Show the device list in a windows GUI popup. Return information on the selected device (result should be checked for None)
 selected_device_info = aduhid.show_device_list('Line 1\nLine 2')
 
-# Open the device selected in the list
+# Open the device selected in the list (result should be checked for None)
 device_handle = aduhid.open_device_by_serial_number(selected_device_info.serial_number, 100)
 
 # Or by product id
@@ -25,8 +25,11 @@ print('Write result: %i' % result) # Should be non-zero if successful
 result = aduhid.write_device(device_handle, 'SK0', 100)
 print('Write result: %i' % result) # Should be non-zero if successful
 
+result = aduhid.write_device(device_handle, 'MK12', 100)
+print('Write result: %i' % result) # Should be non-zero if successful
+
 # Comment the next two lines to see what happens when attempting a read without first issuing a resulting command
-result = aduhid.write_device(device_handle, 'RPK0', 100)
+result = aduhid.write_device(device_handle, 'PK', 100)
 print('Write result: %i' % result) # Should be non-zero if successful
 
 # Read from device

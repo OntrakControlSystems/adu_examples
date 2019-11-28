@@ -61,6 +61,10 @@ _read_adu_device.argtypes = [POINTER(HANDLE), c_char_p, c_ulong, POINTER(c_ulong
 
 adu_handle_type = POINTER(HANDLE)
 
+def ValidHandle(handle):
+	cast_handle = cast(handle, HANDLE)
+	return (cast_handle.value != 0 and cast_handle.value != INVALID_HANDLE_VALUE)
+
 # Get the number of connected ADU devices
 # Returns number of connected devices
 def count(timeout):
@@ -94,8 +98,7 @@ def show_device_list(header_string):
 # Returns a device handle on success, and None on failure
 def open_adu_device(timeout):
 	device_handle = _open_adu_device(timeout)
-
-	if device_handle == 0 or device_handle == INVALID_HANDLE_VALUE:
+	if not ValidHandle(device_handle):
 		return None
 
 	return device_handle
@@ -104,8 +107,7 @@ def open_adu_device(timeout):
 # Returns a device handle on success, and None on failure
 def open_device_by_product_id(product_id, timeout):
 	device_handle = _open_adu_device_by_product_id(product_id, timeout)
-
-	if device_handle == 0 or device_handle == INVALID_HANDLE_VALUE:
+	if not ValidHandle(device_handle):
 		return None
 
 	return device_handle
@@ -114,8 +116,7 @@ def open_device_by_product_id(product_id, timeout):
 # Returns a device handle on success, and None on failure
 def open_device_by_serial_number(serial_number, timeout):
 	device_handle = _open_adu_device_by_serial_number(serial_number, timeout)
-
-	if device_handle == 0 or device_handle == INVALID_HANDLE_VALUE:
+	if False == ValidHandle(device_handle):
 		return None
 
 	return device_handle
