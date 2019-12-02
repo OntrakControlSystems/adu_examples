@@ -2,7 +2,7 @@
 import hid
 
 VENDOR_ID = 0x0a07 # OnTrak Control Systems Inc. vendor ID
-PRODUCT_ID = 200 # ADU208 Device product name - change this to match your product
+PRODUCT_ID = 200 # ADU200 Device product name - change this to match your product
 
 def write_to_adu(dev, msg_str):
     print('Writing command: {}'.format(msg_str))
@@ -39,65 +39,37 @@ def read_from_adu(dev, timeout):
     if len(result_str) == 0:
         return None
 
-    return int(result_str) # convert the resulting string to an integer and return
+    return result_str 
 
-def main():
-    print('Connected ADU devices:')
-    for d in hid.enumerate(VENDOR_ID):
-        print('    ADU{}'.format(d['product_id']))
-    print('')
+# Uncomment if you wish to print out information related to connected ADU devices
+# print('Connected ADU devices:')
+# for d in hid.enumerate(VENDOR_ID):
+#     print('    ADU{}'.format(d['product_id']))
+# print('')
 
-    try:
-        device = hid.device()
-        device.open(VENDOR_ID, PRODUCT_ID)
-        print('Connected to ADU{}\n'.format(PRODUCT_ID))
+try:
+    device = hid.device()
+    device.open(VENDOR_ID, PRODUCT_ID)
+    print('Connected to ADU{}\n'.format(PRODUCT_ID))
 
-        # clear the read buffer of any unread values
-        # this is important so that we don't read old values from previous requests sent to the device
-        while True:
-            if read_from_adu(device, 200) == None:
-                break
+    bytes_written = write_to_adu(device, 'RK0') # set relay 0, note: device does not send a response for this
+    bytes_written = write_to_adu(device, 'SK0') # reset relay 0
 
-        bytes_written = write_to_adu(device, 'RK0') # set relay 0, note: device does not send a response for this
-        bytes_written = write_to_adu(device, 'SK0') # reset relay 0
+    bytes_written = write_to_adu(device, 'PA') # request the status of PORT A
 
-        bytes_written = write_to_adu(device, 'RPK0') # request the status or relay 0
-        data = read_from_adu(device, 200) # read the response from above RPK0 request
-        print('Received: {}'.format(data))
+    data = read_from_adu(device, 200) # read the response from above PA request
+    if data != None:
+        # convert the resulting string to an integer 
+        data_int = int(data)
+        print('Received: {}'.format(data_int))
 
-        bytes_written = write_to_adu(device, 'RK0') # set relay 0, note: device does not send a response for this
+    # if a read is performed when no result is waiting to be read, None will be returned
+    # data = read_from_adu(device, 200) # should be None as we are reading with no corresponding request (we are reading one too many times here)
+    # print('Received: {}'.format(data))
 
-        bytes_written = write_to_adu(device, 'RPK0') # request the status or relay 0
-        data = read_from_adu(device, 200) # read the response from above RPK0 request
-        print('Received: {}'.format(data))
-
-        bytes_written = write_to_adu(device, 'SK0') # reset relay 0
-
-        bytes_written = write_to_adu(device, 'RPK0') # request the status or relay 
-        data = read_from_adu(device, 200) # read the response from above RPK0 request
-        print('Received: {}'.format(data))
-
-        bytes_written = write_to_adu(device, 'MK11') # set PORT K to 11
-
-        bytes_written = write_to_adu(device, 'PK') # request PORT K value 
-        bytes_written = write_to_adu(device, 'PK') # request PORT K value 
-
-        data = read_from_adu(device, 200) # should be 11 (first PK request)
-        print('Received: {}'.format(data))
-
-        data = read_from_adu(device, 200) # should be 11 (second PK request)
-        print('Received: {}'.format(data))
-
-        data = read_from_adu(device, 200) # should be None as we are reading with no corresponding request (we are reading one too many times here)
-        print('Received: {}'.format(data))
-
-        device.close()
-    except IOError as e:
-        print(e)
-        print('Verify that the device has the proper PRODUCT_ID defined as is currently connected.')
-        print('Your device should appear in the enumeration printout. Please use a product number from that list.')
-
-if __name__ == '__main__':
-	main()
-
+    device.close()
+except IOError as e:
+    print(e)
+    print('Verify that the device has the proper PRODUCT_ID defined as is currently connected.')
+    print('Your device should appear in the enumeration printout. Please use a product number from that list.')
 
