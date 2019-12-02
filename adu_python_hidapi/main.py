@@ -1,4 +1,5 @@
 # NOTE: when running the example, it must be run with root privileges in order to access the USB device.
+# If you receive errors when installing the aduhid Python module on Linux, check that udev is installed (on Debian/Ubuntu: sudo apt-get install libudev1 libudev-dev)
 import hid
 
 VENDOR_ID = 0x0a07 # OnTrak Control Systems Inc. vendor ID
@@ -42,10 +43,10 @@ def read_from_adu(dev, timeout):
     return result_str 
 
 # Uncomment if you wish to print out information related to connected ADU devices
-# print('Connected ADU devices:')
-# for d in hid.enumerate(VENDOR_ID):
-#     print('    ADU{}'.format(d['product_id']))
-# print('')
+print('Connected ADU devices:')
+for d in hid.enumerate(VENDOR_ID):
+    print('    Product ID: {}'.format(d['product_id']))
+print('')
 
 try:
     device = hid.device()
@@ -55,17 +56,11 @@ try:
     bytes_written = write_to_adu(device, 'RK0') # set relay 0, note: device does not send a response for this
     bytes_written = write_to_adu(device, 'SK0') # reset relay 0
 
-    bytes_written = write_to_adu(device, 'PA') # request the status of PORT A
+    bytes_written = write_to_adu(device, 'RPA') # request the status of PORT A in binary format
 
     data = read_from_adu(device, 200) # read the response from above PA request
     if data != None:
-        # convert the resulting string to an integer 
-        data_int = int(data)
-        print('Received: {}'.format(data_int))
-
-    # if a read is performed when no result is waiting to be read, None will be returned
-    # data = read_from_adu(device, 200) # should be None as we are reading with no corresponding request (we are reading one too many times here)
-    # print('Received: {}'.format(data))
+        print('Received: {}'.format(data))
 
     device.close()
 except IOError as e:
