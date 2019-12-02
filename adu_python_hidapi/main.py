@@ -45,7 +45,6 @@ def read_from_adu(dev, timeout):
 # Uncomment if you wish to print out information related to connected ADU devices
 # print('Connected ADU devices:')
 # for d in hid.enumerate(VENDOR_ID):
-#     print(d)
 #     print('    Product ID: {}'.format(d['product_id']))
 # print('')
 
