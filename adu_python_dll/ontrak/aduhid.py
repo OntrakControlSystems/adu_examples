@@ -16,7 +16,7 @@ class ADU_DEVICE_ID(Structure):
 		("serial_number", c_char * 7)
 	]
 
-os.environ['PATH'] = os.path.dirname(__file__) + ';' + os.environ['PATH']
+os.add_dll_directory(os.path.dirname(__file__))
 arch = platform.architecture()
 if arch[0] == '32bit':
 	adu_lib = WinDLL('AduHid')
@@ -86,7 +86,7 @@ def device_list(timeout):
 # Returns None if no device was selecte from list
 def show_device_list(header_string):
 	device_id = ADU_DEVICE_ID()
-	_show_adu_device_list(device_id, c_char_p(header_string))
+	_show_adu_device_list(device_id, c_char_p(header_string.encode()))
 
 	if device_id.product_id == 0x00 and device_id.vendor_id == 0x00:
 		return None
@@ -129,13 +129,13 @@ def close_device(device_handle):
 # Returns 0 if failed, other value if successful
 def write_device(device_handle, command, timeout):
 	bytes_written = c_ulong()
-	result = _write_adu_device(device_handle, c_char_p(command), len(command), byref(bytes_written), timeout)
+	result = _write_adu_device(device_handle, c_char_p(command.encode()), len(command), byref(bytes_written), timeout)
 	return result
 	
 # Read a pending value from the device. Data will be pending if a responsive command was previously issued (such as 'RPK0')
-# Returns the result of the read (0 if successul, other value if failure). Value will contain the read value on success, and None on failure
+# Returns the result of the read (0 if successul, other value if failure). Value will contain the read value as a string on success, and None on failure
 def read_device(device_handle, timeout):
-	read_string = '#' * 7
+	read_string = b'#' * 7
 	read_buffer = c_char_p(read_string)
 	bytes_read = c_ulong()
 	result = _read_adu_device(device_handle, read_buffer, 7, byref(bytes_read), timeout)
@@ -143,4 +143,4 @@ def read_device(device_handle, timeout):
 	if result == 0: # unsuccessful read
 		return (result, None)
 
-	return (result, int(read_string.rstrip('\x00')))
+	return (result, read_string.decode().rstrip('\x00'))

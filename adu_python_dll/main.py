@@ -1,22 +1,20 @@
 from ontrak import aduhid
 
+PRODUCT_ID = 200 # Set the product id to match your ADU device. See list here: https://www.ontrak.net/Nodll.htm
+
 # Example of getting the number of connected ADU devices
-num_adu = aduhid.count(100)
-print('Number of ADU devices connected: %i' % (num_adu))
+#num_adu = aduhid.count(100)
+#print('Number of ADU devices connected: %i' % (num_adu))
+#
+#device_list = aduhid.device_list(100)
+#for device in device_list:
+#	print('Vendor ID: %i, Product ID: %i, Serial Number: %s' % (device.vendor_id, device.product_id, device.serial_number))
 
-# Get a device list of connected ADUs. List will be empty if no devices are connected.
-device_list = aduhid.device_list(100)
-for device in device_list:
-	print('Vendor ID: %i, Product ID: %i, Serial Number: %s' % (device.vendor_id, device.product_id, device.serial_number))
-
-# Show the device list in a windows GUI popup. Return information on the selected device (result should be checked for None)
-selected_device_info = aduhid.show_device_list('Line 1\nLine 2')
-
-# Open the device selected in the list (result should be checked for None)
-device_handle = aduhid.open_device_by_serial_number(selected_device_info.serial_number, 100)
-
-# Or by product id
-# device_handle = aduhid.open_device_by_product_id(selected_device_info.product_id, 100)
+# open device by product id
+device_handle = aduhid.open_device_by_product_id(PRODUCT_ID, 100)
+if device_handle == None:
+	print('Error opening device. Ensure that the product id is correct and that it is connected')
+	exit(-1)
 
 # Write a command to the device
 result = aduhid.write_device(device_handle, 'RK0', 100)
@@ -25,11 +23,7 @@ print('Write result: %i' % result) # Should be non-zero if successful
 result = aduhid.write_device(device_handle, 'SK0', 100)
 print('Write result: %i' % result) # Should be non-zero if successful
 
-result = aduhid.write_device(device_handle, 'MK12', 100)
-print('Write result: %i' % result) # Should be non-zero if successful
-
-# Comment the next two lines to see what happens when attempting a read without first issuing a resulting command
-result = aduhid.write_device(device_handle, 'PK', 100)
+result = aduhid.write_device(device_handle, 'RPA', 100)
 print('Write result: %i' % result) # Should be non-zero if successful
 
 # Read from device
@@ -38,7 +32,7 @@ print('Write result: %i' % result) # Should be non-zero if successful
 # Result will contain the returned value from the device in integer form 
 # If read is not successful, result is 0 and value is None
 if result != 0:
-	print('Read result: %i, value: %i' % (result, value)) 
+	print('Read result: %i, value: %s' % (result, value)) 
 else:
 	print('Read failed - was a resulting command issued prior to the read?') 
 
