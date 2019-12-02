@@ -52,10 +52,6 @@ def read_from_adu(dev, timeout):
 try:
     device = hid.device()
     device.open(VENDOR_ID, PRODUCT_ID)
-    if device == None:
-        print('Error opening device. Ensure that the product id is correct and that it is connected')
-        exit(-1)
-
     print('Connected to ADU{}\n'.format(PRODUCT_ID))
 
     bytes_written = write_to_adu(device, 'RK0') # set relay 0, note: device does not send a response for this
