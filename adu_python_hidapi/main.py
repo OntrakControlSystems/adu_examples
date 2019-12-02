@@ -43,14 +43,19 @@ def read_from_adu(dev, timeout):
     return result_str 
 
 # Uncomment if you wish to print out information related to connected ADU devices
-print('Connected ADU devices:')
-for d in hid.enumerate(VENDOR_ID):
-    print('    Product ID: {}'.format(d['product_id']))
-print('')
+# print('Connected ADU devices:')
+# for d in hid.enumerate(VENDOR_ID):
+#     print(d)
+#     print('    Product ID: {}'.format(d['product_id']))
+# print('')
 
 try:
     device = hid.device()
     device.open(VENDOR_ID, PRODUCT_ID)
+    if device == None:
+        print('Error opening device. Ensure that the product id is correct and that it is connected')
+        exit(-1)
+
     print('Connected to ADU{}\n'.format(PRODUCT_ID))
 
     bytes_written = write_to_adu(device, 'RK0') # set relay 0, note: device does not send a response for this
@@ -60,7 +65,9 @@ try:
 
     data = read_from_adu(device, 200) # read the response from above PA request
     if data != None:
-        print('Received: {}'.format(data))
+        print('Received string: {}'.format(data))
+        # data_int = int(data) # if you wish to work with the data in integer format
+        # print( 'Received int: {}'.format(data_int))
 
     device.close()
 except IOError as e:
