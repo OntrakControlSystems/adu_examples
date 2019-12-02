@@ -10,7 +10,7 @@
 #include <libusb-1.0/libusb.h>
 
 #define VENDOR_ID      0x0a07  // Ontrak vendor ID. This should never change
-#define PRODUCT_ID     208     // ADU208 product ID. Set this product ID to match your device.
+#define PRODUCT_ID     200     // ADU200 product ID. Set this product ID to match your device.
                                // Product IDs can be found at https://www.ontrak.net/Nodll.htm.
 
 //#define TRANSFER_SIZE    64  // Data transfer size is either 8 bytes (low-speed USB devices) or 64 bytes (full-speed USB devices).
@@ -18,7 +18,9 @@
                                // You can also type `dmesg` in your terminal immediately after connecting an ADU to your computer.
                                // This should list whether it is low-speed or full-speed.
 
-#define TRANSFER_SIZE    8     // ADU208 is a low-speed device, so we must use 8 byte transfers
+#define TRANSFER_SIZE    8     // ADU200 is a low-speed device, so we must use 8 byte transfers
+
+#define COUNT_OF(array) (sizeof(array) / sizeof(array[0]))
 
 // Write a command to an ADU device with a specified timeout
 int write_to_adu( libusb_device_handle * _device_handle, const char * _cmd, int _timeout )
@@ -57,8 +59,13 @@ int write_to_adu( libusb_device_handle * _device_handle, const char * _cmd, int 
 }
 
 // Read a command from an ADU device with a specified timeout
-int read_from_adu( libusb_device_handle * _device_handle, int * _read_value, int _timeout )
+int read_from_adu( libusb_device_handle * _device_handle, char * _read_str, int _read_str_len, int _timeout )
 {
+	if ( _read_str == NULL || _read_str_len < 8 )
+	{
+		return -2;
+	}
+    
     int bytes_read = 0;
 
     // Buffer to hold the command we will receive from the ADU device
@@ -77,14 +84,10 @@ int read_from_adu( libusb_device_handle * _device_handle, int * _read_value, int
         return result;
     }
 
-    // Our buffer should now hold the data read from the ADU device. The first byte will be a value of decimal 1.
-    // The data we are interested in follows in ASCII form. We will need to convert the ASCII data to an integer
-    // in order for it to be usable to us in a numeric format. The buffer is null terminated, and as such atoi()
-    // can be used for this.
-
-    // Convert the ASCII string result stored in the buffer's 2nd index and onward from a string to an integer
-    // and store it in the read_value pointer user argument
-    *_read_value = atoi( (const char *)&buffer[1] );
+	// The buffer should now hold the data read from the ADU device. The first byte will contain 0x01, the remaining bytes
+	// are the returned value in string format. Let's copy the string from the read buffer, starting at index 1, to our _read_str buffer 
+	memcpy( _read_str, &buffer[1], 7 );
+	buffer[7] = '\0'; // null terminate the string
 
     return result; // returns 0 on success, a negative number specifying the libusb error otherwise
 }
@@ -93,8 +96,8 @@ int read_from_adu( libusb_device_handle * _device_handle, int * _read_value, int
 int main( int argc, char **argv )
 {
     struct libusb_device_handle * device_handle = NULL; // Our ADU's USB device handle
+	char value_str[8]; // 8-byte buffer to store string values read from device (7 byte string + NULL terminating character)
     int result;
-    int value; // to hold our value read from the ADU
 
     // Initialize libusb
     result = libusb_init( NULL );
@@ -136,35 +139,30 @@ int main( int argc, char **argv )
         exit( -3 );
     }
 
-    // Read until there is nothing left to read from the device. This is to clear
-    // any pending reads that was not initiated by us. This will print out an LIBUSB ERROR TIMEOUT
-    // when there is no longer any data waiting for us
-    while ( 0 == read_from_adu( device_handle, &value, 200 ) )
-    {
-    }
- 
     // Now that we have our device and have claimed interface 0, we can write to and read from it:
     result = write_to_adu( device_handle, "RK0", 200 ); // reset relay 0
 
     // We aren't checking the result of write_to_adu, but it will return 0 on success and a negative number on failure.
     result = write_to_adu( device_handle, "SK0", 200 ); // close relay 0
 
-    // Important note: if a responsive command is issued, such as RPK0 below, a read must immediately follow it to
+    // Important note: if a responsive command is issued via interrupt transfers, such as RPA below, a read must immediately follow it to
     // obtain the result. If we do not do perform a read and continue issuing writes, the device may be disconnected
     // by the OS and need to be reset.
 
-    // Send a command to request value of relay 0 (should be 1 as we closed the relay with SK0)
-    result = write_to_adu( device_handle, "RPK0", 200 );
-    if ( 0 == read_from_adu( device_handle, &value, 200 ) ) // Read the result
+    // Send a command to request value of PORT A
+    result = write_to_adu( device_handle, "RPA", 200 );
+    if ( 0 == read_from_adu( device_handle, value_str, COUNT_OF(value_str), 200 ) ) // Read the result
     {
-        printf( "Read value: %i\n", value );
-    }
+		printf( "Read value as string: %s\n", value_str );
 
-    result = write_to_adu( device_handle, "MK255", 200 ); // Set PORT K to 255
-    result = write_to_adu( device_handle, "PK", 200 ); // Read PORT K value
-    if ( 0 == read_from_adu( device_handle, &value, 200 ) ) // Read the result (should be 255)
-    {
-        printf( "Read value: %i\n", value );
+		// The data we are interested in follows in ASCII form. We will need to convert the ASCII data to an integer
+		// in order for it to be usable to us in a numeric format. The buffer is null terminated, and as such atoi()
+		// can be used for this.
+
+		// Convert the ASCII string result stored in the buffer's 2nd index and onward from a string to an integer
+		// and store it in the read_value pointer user argument
+		int value_int = atoi( value_str );
+		printf( "Read value as int: %i\n", value_int );
     }
 
     // We are done with our device and will now release the interface we previously claimed as well as the device
