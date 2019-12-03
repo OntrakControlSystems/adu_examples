@@ -6,7 +6,7 @@ import usb.core
 import usb.backend.libusb1
 
 VENDOR_ID = 0x0a07 # OnTrak Control Systems Inc. vendor ID
-PRODUCT_ID = 222 # ADU200 Device product name - change this to match your product
+PRODUCT_ID = 200 # ADU200 Device product name - change this to match your product
 
 def write_to_adu(dev, msg_str):
     print("Writing command: {}".format(msg_str))
