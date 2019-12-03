@@ -52,9 +52,9 @@ if platform.system() == 'Windows':
     # libusb DLLs from: https://sourcefore.net/projects/libusb/
     arch = platform.architecture()
     if arch[0] == '32bit':
-        backend = usb.backend.libusb1.et_backend(find_library=lambda x: "libusb/x86/libusb-1.0.dll") # 32-bit DLL, select the appropriate one based on your Python installation
+        backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb/x86/libusb-1.0.dll") # 32-bit DLL, select the appropriate one based on your Python installation
     elif arch[0] == '64bit':
-        backend = usb.backend.libusb1.et_backend(find_library=lambda x: "libusb/x64/libusb-1.0.dll") # 64-bit DLL
+        backend = usb.backend.libusb1.get_backend(find_library=lambda x: "libusb/x64/libusb-1.0.dll") # 64-bit DLL
 
     device = usb.core.find(backend=backend, idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
 elif platform.system() == 'Linux':
