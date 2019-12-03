@@ -6,7 +6,7 @@ import usb.core
 import usb.backend.libusb1
 
 VENDOR_ID = 0x0a07 # OnTrak Control Systems Inc. vendor ID
-PRODUCT_ID = 200 # ADU200 Device product name - change this to match your product
+PRODUCT_ID = 222 # ADU200 Device product name - change this to match your product
 
 def write_to_adu(dev, msg_str):
     print("Writing command: {}".format(msg_str))
@@ -87,8 +87,10 @@ bytes_written = write_to_adu(device, 'RK0') # reset relay 0
 # Read from the ADU
 bytes_written = write_to_adu(device, 'RPA') # request the value of PORT A in binary 
 data = read_from_adu(device, 200) # read from device with a 200 millisecond timeout
-print("Received string: {}".format(data))
-print("Received data as int: {}".format(int(data)))
+
+if data != None:
+    print("Received string: {}".format(data))
+    print("Received data as int: {}".format(int(data)))
 
 usb.util.release_interface(device, 0)
 
