@@ -8,8 +8,8 @@ import usb.backend.libusb1
 VENDOR_ID = 0x0a07 # OnTrak Control Systems Inc. vendor ID
 PRODUCT_ID = 200 # ADU200 Device product name - change this to match your product
 
-def send_message(dev, msg_str):
-    print("Sending message: {}".format(msg_str))
+def write_to_adu(dev, msg_str):
+    print("Writing command: {}".format(msg_str))
     # message structure:
     #   message is an ASCII string containing the command
     #   8 bytes in lenth
@@ -27,69 +27,71 @@ def send_message(dev, msg_str):
 
     return num_bytes_written
 
-def read_message(dev):
+def read_from_adu(dev, timeout):
     try:
-        data = dev.read(0x81, 64, 200) # timeout of 200 milliseconds
+        data = dev.read(0x81, 64, timeout)
     except usb.core.USBError as e:
         print ("Error reading response: {}".format(e.args))
         return None
 
-    byte_str = "".join(chr(n) for n in data[1:])
-    print ("Read response: {}".format(byte_str))
-    return byte_str.strip('\x00')
+    byte_str = ''.join(chr(n) for n in data[1:]) # construct a string out of the read values, starting from the 2nd byte
+    result_str = byte_str.split('\x00',1)[0] # remove the trailing null '\x00' characters
 
-def main():
-    was_kernel_driver_active = False
+    if len(result_str) == 0:
+        return None
 
-    device = None
+    return result_str
 
-    if platform.system() == 'Windows':
-        # required for Windows only
-        # libusb DLLs from: https://sourcefore.net/projects/libusb/
-        arch = platform.architecture()
-        if arch[0] == '32bit':
-            backend = usb.backend.libusb1.et_backend(find_library=lambda x: "libusb/x86/libusb-1.0.dll") # 32-bit DLL, select the appropriate one based on your Python installation
-        elif arch[0] == '64bit':
-            backend = usb.backend.libusb1.et_backend(find_library=lambda x: "libusb/x64/libusb-1.0.dll") # 64-bit DLL
 
-        device = usb.core.find(backend=backend, idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
-    elif platform.system() == 'Linux':
-        device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
 
-        # if the OS kernel already claimed the device
-        if device.is_kernel_driver_active(0) is True:
-            # tell the kernel to detach
-            device.detach_kernel_driver(0)
-            was_kernel_driver_active = True
-    else:
-        device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
+was_kernel_driver_active = False
+device = None
 
-    if device is None:
-        raise ValueError('ADU Device not found. Please ensure it is connected to the tablet.')
-        sys.exit(1)
+if platform.system() == 'Windows':
+    # required for Windows only
+    # libusb DLLs from: https://sourcefore.net/projects/libusb/
+    arch = platform.architecture()
+    if arch[0] == '32bit':
+        backend = usb.backend.libusb1.et_backend(find_library=lambda x: "libusb/x86/libusb-1.0.dll") # 32-bit DLL, select the appropriate one based on your Python installation
+    elif arch[0] == '64bit':
+        backend = usb.backend.libusb1.et_backend(find_library=lambda x: "libusb/x64/libusb-1.0.dll") # 64-bit DLL
 
-    device.reset()
+    device = usb.core.find(backend=backend, idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
+elif platform.system() == 'Linux':
+    device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
 
-    # Set the active configuration. With no arguments, the first configuration will be the active one
-    device.set_configuration()
+    # if the OS kernel already claimed the device
+    if device.is_kernel_driver_active(0) is True:
+        # tell the kernel to detach
+        device.detach_kernel_driver(0)
+        was_kernel_driver_active = True
+else:
+    device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
 
-    # Claim interface 0
-    usb.util.claim_interface(device, 0)
+if device is None:
+    raise ValueError('ADU Device not found. Please ensure it is connected to the tablet.')
+    sys.exit(1)
 
-    # Write commands to ADU
-    bytes_written = send_message(device, 'SK0') # set relay 0
-    bytes_written = send_message(device, 'RK0') # reset relay 0
+device.reset()
 
-    # Read from the ADU
-    bytes_written = send_message(device, 'RPA') # request the value of PORT A in binary 
-    data = read_message(device)
-    print("Received string: {}".format(data))
-    print("Received data as int: {}".format(int(data)))
+# Set the active configuration. With no arguments, the first configuration will be the active one
+device.set_configuration()
 
-    usb.util.release_interface(device, 0)
+# Claim interface 0
+usb.util.claim_interface(device, 0)
 
-    if was_kernel_driver_active == True:
-        device.attach_kernel_driver(0)
+# Write commands to ADU
+bytes_written = write_to_adu(device, 'SK0') # set relay 0
+bytes_written = write_to_adu(device, 'RK0') # reset relay 0
 
-if __name__ == "__main__":
-	main()
+# Read from the ADU
+bytes_written = write_to_adu(device, 'RPA') # request the value of PORT A in binary 
+data = read_from_adu(device, 200) # read from device with a 200 millisecond timeout
+print("Received string: {}".format(data))
+print("Received data as int: {}".format(int(data)))
+
+usb.util.release_interface(device, 0)
+
+# This applies to Linux only - reattach the kernel driver if we previously detached it
+if was_kernel_driver_active == True:
+    device.attach_kernel_driver(0)
